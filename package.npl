@@ -8,11 +8,11 @@
         ["redis-npl"] = {
           ["version"] = "1.0.0",
           ["package_src"] = "nplc-packages/redis-npl",
-        }
-        ["dove"] = {
-          ["version"] = "0.1.0",
-          ["package_src"] = "nplc-packages/dove",
         },
+        ["dove"] = {
+          ["version"] = "0.2.0",
+          ["package_src"] = "nplc-packages/dove",
+        }
       },
       ["author"] = "KeepWrok Backend Team",
       ["name"] = "gitGateway",
