@@ -5,97 +5,136 @@ A repository model must have a repo id, which must match the id in the git servi
 Currently we store repos and repo permissions in keepwork core api server, the client should get repo id before call the git gateway.
 ]]
 local _M = commonlib.inherit(Dove.Model.Base, "Model.Repository")
-local StringHelper = commonlib.gettable("Dove.Utils.StringHelper")
 local GitService = commonlib.gettable("Service.Git")
+local Node = commonlib.gettable("Model.Node")
 
 _M.db_name = "repository"
 
-local json_encode = commonlib.Json.Encode
-local json_decode = commonlib.Json.Decode
 local string_gsub = string.gsub
-
-local NODE_PREFIX = "node:"
-
-local function add_node_prefix(repo_path, path)
-    return NODE_PREFIX .. repo_path .. ":" .. path
-end
-
-local function remove_node_prefix(path)
-    local arr = StringHelper.split(path, "[^:]+")
-    return arr[#arr]
-end
-
-local function is_folder(path)
-    return not path.match("^[^.]+") -- not **.**
-end
+local table_insert = table.insert
 
 function _M:ctor()
 end
 
 function _M:init(repo_id, root_path)
     self.repo_id = repo_id
-    self.project = Model.Project:new():init(self.repo_id)
+    self.project = Model.Project.find(self.repo_id)
     self.root_path = root_path or "/"
-    self.repo_path = self.project.data.path_with_namespace
+    self.repo_path = self.project.path_with_namespace
     return self
 end
 
+function _M:to_json()
+    local json_data = {}
+    for _, node in ipairs(self:tree()) do
+        table_insert(json_data, node:to_json())
+    end
+    return json_data
+end
+
 function _M:load_tree()
-    -- always load all
+    -- Always load all data. Pls fix it when we can find a way to do the lazy loading.
     return GitService.client("GITLAB").load_tree(self.repo_id)
 end
 
 function _M:load_relative_cached_nodes()
-    local node_keys = APP.redis_client:keys(add_node_prefix(self.repo_path, self.root_path .. "*"))
+    local node_keys = APP.redis_client:keys(Node.add_node_prefix(self.repo_path, self.root_path .. "*"))
     if #node_keys == 0 then
         return nil
     end
 
     local nodes = {}
     for _, key in pairs(node_keys) do
-        nodes[remove_node_prefix(key)] = json_decode(APP.redis_client:get(key))
+        local node = Node:new():init_by_key(self, key)
+        table_insert(nodes, node)
     end
     return nodes
 end
 
-function _M:cache_all_node(tree)
-    for _, node in pairs(tree) do
-        node.synchronized = true
-        APP.redis_client:set(add_node_prefix(self.repo_path, node.path), json_encode(node))
+function _M:cache_tree_data(tree)
+    for _, node_data in pairs(tree) do
+        Node.cache(self, node_data)
     end
 end
 
 function _M:load_and_cache_tree()
-    local tree = self:load_tree()
-    self:cache_all_node(tree)
-    self.cached_tree = self:load_relative_cached_nodes()
+    self:cache_tree_data(self:load_tree())
+    self.nodes = self:load_relative_cached_nodes()
 end
 
 function _M:load_tree_from_cache()
-    self.cached_tree = self:load_relative_cached_nodes()
-    if (self.cached_tree) then
-        return
+    self.nodes = self:load_relative_cached_nodes()
+    if not self.nodes then
+        self:load_and_cache_tree()
     end
-    self:load_and_cache_tree()
 end
 
 function _M:tree(force_refresh)
     if force_refresh then
         self:load_and_cache_tree()
-    elseif not self.cached_tree then
+    elseif not self.nodes then
         self:load_tree_from_cache()
     end
-    return self.cached_tree
+    return self.nodes
 end
 
 function _M:add_node(path)
-    -- TODO
+    if NodeHelper.is_folder(path) then
+        self:add_folder(path)
+    else
+        self:add_file(path)
+    end
+end
+
+function _M:have_node(path)
+    return self.tree()[path] ~= nil
+end
+
+function _M:check_parent_node(path)
+    local parent_node = NodeHelper.parent_node(path)
+    if parent_node and not self:have_node(parent_node) then
+        return false
+    end
+    return true
 end
 
 function _M:delete_node(path)
-    -- TODO
 end
 
 function _M:move_node(path)
+end
+
+function _M:add_folder(path)
+    if not self:check_parent_node(path) then
+        return false, "invalid parent node"
+    end
+    if self:have_node(path) then
+        return false, "already existed"
+    end
+    self:add_file(path .. "/.gitignore")
+end
+
+function _M:delete_folder(path)
+    -- delete all files in t
+end
+
+function _M:move_folder(path)
+end
+
+function _M:add_file(path)
+    if not self:check_parent_node(path) then
+        return false, "invalid parent node"
+    end
+    if self:have_node(path) then
+        return false, "already existed"
+    end
+    -- TODO Add file
+end
+
+function _M:delete_file(path)
+    -- TODO
+end
+
+function _M:move_file(path)
     -- TODO
 end

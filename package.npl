@@ -10,7 +10,7 @@
           ["package_src"] = "nplc-packages/redis-npl",
         },
         ["dove"] = {
-          ["version"] = "0.2.0",
+          ["version"] = "0.3.0",
           ["package_src"] = "nplc-packages/dove",
         }
       },

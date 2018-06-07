@@ -3,5 +3,5 @@ _C.resource_name = "repository"
 
 function _C:show()
     local repo = Model.Repository:new():init(self.params["id"], self.params["root_path"])
-    return repo:tree()
+    return repo:to_json()
 end

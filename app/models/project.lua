@@ -18,9 +18,7 @@ local function load_and_cache_project(id)
     return project_data
 end
 
--- The ID or URL-encoded path of the project
--- 222 or gitlab_www_chenqh/keepworkHey
-function _M.find_project(id)
+local function find_project(id)
     local project_data
     local real_id = id
     if not tonumber(id) then
@@ -43,21 +41,18 @@ function _M:ctor()
 end
 
 function _M:init(key)
-    if tonumber(key) then
-        return self:init_by_id(key)
-    else
-        return self:init_by_path(key)
+    self:init_by_table(find_project(key))
+    return self
+end
+
+function _M:init_by_table(t)
+    for key, value in pairs(t) do
+        self[key] = value
     end
 end
 
-function _M:init_by_id(id)
-    self.id = tonumber(id)
-    self.data = self.find_project(self.id)
-    return self
-end
-
-function _M:init_by_path(path)
-    self.data = self.find_project(path)
-    self.id = self.data.id
-    return self
+-- The ID or URL-encoded path of the project
+-- 222 or gitlab_www_chenqh/keepworkHey
+function _M.find(id)
+    return _M:new():init(id)
 end
