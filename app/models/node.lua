@@ -52,7 +52,7 @@ function _M.add_node_prefix(repo_path, path)
 end
 
 function _M.remove_node_prefix(path)
-    local segments = StringHelper.split(path, "[^:]+")
+    local segments = StringHelper.split(path, ":")
     return segments[#segments]
 end
 
@@ -61,7 +61,7 @@ function _M.is_folder(path)
 end
 
 function _M.parent_node(path)
-    local segments = StringHelper.split("[^/]+")
+    local segments = StringHelper.split(path, "/")
     if #segments > 1 then
         table_concat(segments, "/", 1, #segments - 1)
     end
