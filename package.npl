@@ -9,6 +9,10 @@
           ["version"] = "1.0.0",
           ["package_src"] = "nplc-packages/redis-npl",
         },
+        ["rdkafka"] = {
+            ["version"] = "0.1.0",
+            ["package_src"] = "nplc-packages/rdkafka",
+        },
         ["dove"] = {
           ["version"] = "0.3.1",
           ["package_src"] = "nplc-packages/dove",
